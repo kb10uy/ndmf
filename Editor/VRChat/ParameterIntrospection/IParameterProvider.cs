@@ -10,6 +10,19 @@ using UnityEngine;
 
 namespace nadena.dev.ndmf
 {
+    public enum ParameterSignedness
+    {
+        /// <summary>
+        /// Indicates that this holds an unsigned value.
+        /// </summary>
+        Unsigned,
+
+        /// <summary>
+        /// Indicates that this holds a signed value.
+        /// </summary>
+        Signed
+    }
+
     public enum ParameterNamespace
     {
         /// <summary>
@@ -59,6 +72,8 @@ namespace nadena.dev.ndmf
                    Equals(Source, other.Source) &&
                    Equals(Plugin, other.Plugin) &&
                    ParameterType == other.ParameterType &&
+                   EffectiveNumericBitWidth == other.EffectiveNumericBitWidth &&
+                   EffectiveSignedness == other.EffectiveSignedness &&
                    ExpandTypeOnConflict == other.ExpandTypeOnConflict &&
                    IsHidden == other.IsHidden &&
                    WantSynced == other.WantSynced;
@@ -80,6 +95,8 @@ namespace nadena.dev.ndmf
                 hashCode = (hashCode * 397) ^ (Source != null ? Source.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (Plugin != null ? Plugin.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ ParameterType.GetHashCode();
+                hashCode = (hashCode * 397) ^ EffectiveNumericBitWidth;
+                hashCode = (hashCode * 397) ^ (int)EffectiveSignedness;
                 hashCode = (hashCode * 397) ^ ExpandTypeOnConflict.GetHashCode();
                 hashCode = (hashCode * 397) ^ IsHidden.GetHashCode();
                 hashCode = (hashCode * 397) ^ WantSynced.GetHashCode();
@@ -104,6 +121,28 @@ namespace nadena.dev.ndmf
 
         internal (ParameterNamespace, string) NamePair => (Namespace, EffectiveName);
 
+        private bool IsNumeric =>
+            ParameterType == AnimatorControllerParameterType.Int ||
+            ParameterType == AnimatorControllerParameterType.Float;
+
+
+        private int? _numericBitWidth;
+
+        private int EffectiveNumericBitWidth => IsNumeric ? (NumericBitWidth ?? 8) : 0;
+
+        /// <summary>
+        /// The width of this parameter when its type is numeric (Int/Float).
+        /// Set value will be clamped.
+        /// </summary>
+        public int? NumericBitWidth
+        {
+            get => _numericBitWidth;
+            set => _numericBitWidth = value.HasValue ? Math.Clamp(value.Value, 2, 8) : (int?)null;
+        }
+
+        /// <summary>
+        /// The width that this parameter takes.
+        /// </summary>
         public int BitUsage
         {
             get
@@ -119,10 +158,31 @@ namespace nadena.dev.ndmf
                         return 1;
                     case AnimatorControllerParameterType.Int:
                     case AnimatorControllerParameterType.Float:
-                        return 8;
+                        return EffectiveNumericBitWidth;
                     default:
                         return 0;
                 }
+            }
+        }
+
+        internal ParameterSignedness? StoredSignedness;
+
+        private ParameterSignedness EffectiveSignedness => IsNumeric ? Signedness : ParameterSignedness.Unsigned;
+
+        /// <summary>
+        /// The signedness of this parameter when its type is numeric (Int/Float).
+        /// </summary>
+        public ParameterSignedness Signedness
+        {
+            get
+            {
+                if (StoredSignedness.HasValue) return StoredSignedness.Value;
+                return ParameterType == AnimatorControllerParameterType.Float ? ParameterSignedness.Signed : ParameterSignedness.Unsigned;
+            }
+
+            set
+            {
+                StoredSignedness = value;
             }
         }
 
