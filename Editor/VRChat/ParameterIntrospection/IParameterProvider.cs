@@ -169,7 +169,7 @@ namespace nadena.dev.ndmf
         /// If true, this parameter will not be registered in the VRC Expressions Parameters asset. Forced to true for
         /// PhysBones prefixes.
         ///
-        /// Conflict resolution: "false" wins. 
+        /// Conflict resolution: "false" wins.
         /// </summary>
         private bool _isAnimatorOnly;
 
@@ -245,7 +245,7 @@ namespace nadena.dev.ndmf
     }
 
     /// <summary>
-    /// Provides information about parameters supplied by a (custom) component. 
+    /// Provides information about parameters supplied by a (custom) component.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public interface IParameterProvider
