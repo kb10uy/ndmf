@@ -37,7 +37,8 @@ namespace nadena.dev.ndmf
         {
             TypeMismatch,
             BitWidthMismatch,
-            SignednessMismatch
+            SignednessMismatch,
+            LerpDurationMismatch
         }
 
         /// <summary>
@@ -301,6 +302,7 @@ namespace nadena.dev.ndmf
             {
                 oldP.NumericBitWidth = newP.NumericBitWidth;
                 oldP.StoredSignedness = newP.StoredSignedness;
+                oldP.StoredLerpDuration = newP.StoredLerpDuration;
                 return;
             }
 
@@ -330,6 +332,16 @@ namespace nadena.dev.ndmf
                      oldP.StoredSignedness != newP.StoredSignedness)
             {
                 onConflict(ConflictType.SignednessMismatch, oldP, newP);
+            }
+
+            if (oldP.StoredLerpDuration == null)
+            {
+                oldP.StoredLerpDuration = newP.StoredLerpDuration;
+            }
+            else if (isNumeric && newP.StoredLerpDuration != null &&
+                     oldP.StoredLerpDuration != newP.StoredLerpDuration)
+            {
+                onConflict(ConflictType.LerpDurationMismatch, oldP, newP);
             }
         }
     }

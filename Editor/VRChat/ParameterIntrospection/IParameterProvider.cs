@@ -74,6 +74,7 @@ namespace nadena.dev.ndmf
                    ParameterType == other.ParameterType &&
                    EffectiveNumericBitWidth == other.EffectiveNumericBitWidth &&
                    EffectiveSignedness == other.EffectiveSignedness &&
+                   EffectiveLerpDuration == other.EffectiveLerpDuration &&
                    ExpandTypeOnConflict == other.ExpandTypeOnConflict &&
                    IsHidden == other.IsHidden &&
                    WantSynced == other.WantSynced;
@@ -97,6 +98,7 @@ namespace nadena.dev.ndmf
                 hashCode = (hashCode * 397) ^ ParameterType.GetHashCode();
                 hashCode = (hashCode * 397) ^ EffectiveNumericBitWidth;
                 hashCode = (hashCode * 397) ^ (int)EffectiveSignedness;
+                hashCode = (hashCode * 397) ^ EffectiveLerpDuration.GetHashCode();
                 hashCode = (hashCode * 397) ^ ExpandTypeOnConflict.GetHashCode();
                 hashCode = (hashCode * 397) ^ IsHidden.GetHashCode();
                 hashCode = (hashCode * 397) ^ WantSynced.GetHashCode();
@@ -184,6 +186,20 @@ namespace nadena.dev.ndmf
             {
                 StoredSignedness = value;
             }
+        }
+
+        internal float? StoredLerpDuration;
+
+        private float? EffectiveLerpDuration => IsNumeric ? LerpDuration : null;
+
+        /// <summary>
+        /// The duration lerping the value of this parameter.
+        /// Set value will be clamped.
+        /// </summary>
+        public float? LerpDuration
+        {
+            get => StoredLerpDuration;
+            set => StoredLerpDuration = value.HasValue && float.IsFinite(value.Value) ? Math.Clamp(value.Value, 0f, 300f) : (float?)null;
         }
 
         /// <summary>
