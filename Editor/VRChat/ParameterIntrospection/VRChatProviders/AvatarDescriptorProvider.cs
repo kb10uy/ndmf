@@ -46,6 +46,7 @@ namespace nadena.dev.ndmf.VRChatProviders
                 {
                     parameter.NumericBitWidth = p.GetBitWidthByType();
                     parameter.Signedness = ConvertSignedness(p.GetRepresentationByType());
+                    parameter.LerpDuration = p.GetCustomLerpDuration();
                 }
 #endif
 
