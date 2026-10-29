@@ -495,6 +495,93 @@ namespace UnitTests.Parameters
             Assert.AreEqual(ParameterSignedness.Signed, outParam.Signedness);
         }
 
+        [Test]
+        public void LerpDurationClamp()
+        {
+            var p = new ProvidedParameter("param", ParameterNamespace.Animator, null, InternalPasses.Instance, AnimatorControllerParameterType.Float);
+            Assert.AreEqual(null, p.LerpDuration);
+
+            p.LerpDuration = -1f;
+            Assert.AreEqual(0f, p.LerpDuration);
+
+            p.LerpDuration = 500f;
+            Assert.AreEqual(300f, p.LerpDuration);
+
+            p.LerpDuration = 1.5f;
+            Assert.AreEqual(1.5f, p.LerpDuration);
+
+            p.LerpDuration = float.NaN;
+            Assert.AreEqual(null, p.LerpDuration);
+
+            p.LerpDuration = float.PositiveInfinity;
+            Assert.AreEqual(null, p.LerpDuration);
+        }
+
+        [Test]
+        public void LerpDurationEquality()
+        {
+            var p1 = new ProvidedParameter("param", ParameterNamespace.Animator, null, InternalPasses.Instance, AnimatorControllerParameterType.Bool);
+            var p2 = new ProvidedParameter("param", ParameterNamespace.Animator, null, InternalPasses.Instance, AnimatorControllerParameterType.Bool);
+            p1.LerpDuration = 1f;
+            Assert.AreEqual(p1, p2);
+            Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+
+            p1.ParameterType = AnimatorControllerParameterType.Float;
+            p2.ParameterType = AnimatorControllerParameterType.Float;
+            Assert.AreNotEqual(p1, p2);
+
+            p2.LerpDuration = 1f;
+            Assert.AreEqual(p1, p2);
+            Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+        }
+
+        [Test]
+        public void LerpDurationMerge()
+        {
+            var (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(null, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, lerpDurationChild: 1f);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(1f, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, lerpDurationParent: 1f);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(1f, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, lerpDurationParent: 1f, lerpDurationChild: 1f);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(1f, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, lerpDurationParent: 300f, lerpDurationChild: 500f);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(300f, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, lerpDurationParent: 1f, lerpDurationChild: 2f);
+            CollectionAssert.AreEqual(new[] { ParameterInfo.ConflictType.LerpDurationMismatch }, conflicts);
+            Assert.AreEqual(1f, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Bool, null, null, lerpDurationParent: 1f, lerpDurationChild: 2f);
+            Assert.AreEqual(0, conflicts.Count);
+        }
+
+        [Test]
+        public void LerpDurationMergeWithAnimatorOnly()
+        {
+            var (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, animOnlyParent: true, lerpDurationParent: 1f, lerpDurationChild: 2f);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(2f, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, animOnlyParent: true, lerpDurationParent: 1f);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(null, outParam.LerpDuration);
+
+            (outParam, conflicts) = NumericFormatMerge(AnimatorControllerParameterType.Float, null, null, animOnlyChild: true, lerpDurationParent: 1f, lerpDurationChild: 2f);
+            Assert.AreEqual(0, conflicts.Count);
+            Assert.AreEqual(1f, outParam.LerpDuration);
+        }
+
         (ProvidedParameter, List<ParameterInfo.ConflictType>) NumericFormatMerge(
             AnimatorControllerParameterType type,
             int? bitWidthParent,
@@ -502,7 +589,9 @@ namespace UnitTests.Parameters
             ParameterSignedness? signednessParent = null,
             ParameterSignedness? signednessChild = null,
             bool animOnlyParent = false,
-            bool animOnlyChild = false
+            bool animOnlyChild = false,
+            float? lerpDurationParent = null,
+            float? lerpDurationChild = null
         )
         {
             var av = CreateRoot("avatar");
@@ -521,11 +610,13 @@ namespace UnitTests.Parameters
             pParent.WantSynced = true;
             pParent.NumericBitWidth = bitWidthParent;
             pParent.StoredSignedness = signednessParent;
+            pParent.LerpDuration = lerpDurationParent;
             var pChild = new ProvidedParameter("param", ParameterNamespace.Animator, tChild, InternalPasses.Instance, type);
             pChild.IsAnimatorOnly = animOnlyChild;
             pChild.WantSynced = true;
             pChild.NumericBitWidth = bitWidthChild;
             pChild.StoredSignedness = signednessChild;
+            pChild.LerpDuration = lerpDurationChild;
 
             ParamTestComponentProvider.SetParameters(tParent, pParent);
             ParamTestComponentProvider.SetParameters(tChild, pChild);
